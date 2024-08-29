@@ -1,0 +1,45 @@
+name: Review PR
+on: 
+    pull_request:
+      branches:
+        - main
+        - master 
+    workflow_dispatch:
+
+jobs:
+    echos:
+        name: Workflow Test
+        runs-on: ubuntu-latest
+        environment: test
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            
+            - name: Checkout to CodeAssist
+              uses: actions/checkout@v4
+              with:
+                repository: appstute/CodeAssist
+                token: ${{ secrets.REPO_PAT_TOKEN }}
+                ref: enhancement/setup-workflow-file
+                path: ./second_repo/CodeAssist
+                fetch-depth: 0
+
+            - name: Update Permission
+              run: chmod -R +x ${{ github.workspace }}/second_repo/CodeAssist
+
+            - name: Move CodeAssist
+              run: mv ${{ github.workspace }}/second_repo/CodeAssist /home/runner/work/CodeAssist
+
+            - name: Run Review Shell File
+              run: /home/runner/work/CodeAssist/review.sh assistant /home/runner/work/CodeAssist
+              shell: bash
+              env:
+                OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+            - name: Open Pull Request
+              run: gh pr create --title "AI Suggestions" --body "Please Review the changes AI has suggested" -R ${{ github.event.repository.name }} -B ${{ github.event.pull_request.head.ref }} -H assistant
+
+              env:
+                GH_TOKEN: ${{ secrets.REPO_PAT_TOKEN }}
